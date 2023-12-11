@@ -5,7 +5,7 @@ import mysql.connector
 
 app = Flask(__name__)
 
-#Tietokantayhteyden avausfunktio
+# Tietokantayhteyden avausfunktio
 def get_db_connection():
     conn = mysql.connector.connect(
         host='127.0.0.1',
@@ -17,8 +17,7 @@ def get_db_connection():
     )
     return conn
 
-
-# Tietokantayhteyden avaaminen ja sulkeminen  tietokantakäsittelyissä
+# Tietokantayhteyden avaaminen ja sulkeminen tietokantakäsittelyissä
 def execute_query(query, values=None):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -97,14 +96,14 @@ def check_login(username, password):
     else:
         return False
 
-
 @app.route('/logout')
 def logout():
     response = make_response(redirect(url_for('index')))
     response.delete_cookie('username')
     return response
 
-
+# Tässä osioissa on sinun pelilogiikkasi, jota on sovellettu Flask-sovellukseen.
+# Arvo uusi maa ja kenttä
 def arvo_uusi_maa_ja_kentta():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -121,109 +120,46 @@ def arvo_uusi_maa_ja_kentta():
     conn.close()
     return arvottu_tieto
 
-
+# Laske etäisyys
 def laske_etaisyys(koordinaatit1, koordinaatit2):
     return geodesic(koordinaatit1, koordinaatit2).kilometers
 
+# Lisää pisteet
 def lisaa_pisteet(username):
-    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()  # Purkaa arvo_uusi_maa_ja_kentta-funktion palauttamia koordinaatteja
-    pelaajan_latitude = 64  # Pelaajan oletuskoordinaatit
+    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
+    pelaajan_latitude = 64
     pelaajan_longitude = 26
     etaisyys = laske_etaisyys((pelaajan_latitude, pelaajan_longitude), (arvottu_latitude, arvottu_longitude))
-    pisteet = max(100 - app.config.get('arvaukset', 0) * 10, 0)  # Lisää oletusarvo arvauksille
-    app.config['loppupisteet'] += pisteet
-    tallenna_pisteet(pisteet, username, arvottu_latitude, arvottu_longitude)  # Välitetään arvot tallenna_pisteet-funktiolle
+    pisteet = max(100 - app.config['pisteet'], 0)
+    if etaisyys <= 500:
+        pisteet += 100
+    elif etaisyys <= 1000:
+        pisteet += 50
+    elif etaisyys <= 1500:
+        pisteet += 20
+    else:
+        pisteet += 10
 
+    # Tallenna pisteet tietokantaan
+    execute_query("INSERT INTO scores (username, points) VALUES (%s, %s)", (username, pisteet))
 
-def tallenna_pisteet(pisteet, username, arvottu_maa, arvottu_kentta):  # Lisättiin arvottu_maa ja arvottu_kentta parametreiksi
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if username:
-        cursor.execute("""
-            UPDATE game SET hiscore = GREATEST(hiscore, %s), arvottu_maa = %s, arvottu_kentta = %s
-            WHERE username = %s
-        """, (pisteet, arvottu_maa, arvottu_kentta, username))  # Välitetään arvottu_maa ja arvottu_kentta SQL-kyselyyn
-        conn.commit()
-    cursor.close()
-    conn.close()
-
-
-
-@app.after_request
-def clear_flash_cookies(response):
-    response.set_cookie('flash_message', '', expires=0)
-    response.set_cookie('flash_category', '', expires=0)
-    return response
-
-
-@app.route('/game', methods=['GET', 'POST'])
+@app.route('/game')
 def game():
     username = request.cookies.get('username')
-    if not username:
-        flash("You need to log in to play the game.", "warning")
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
-        pelaajan_maa = request.form.get('pelaajan_maa').strip()
-        arvottu_maa, arvottu_kentta, _, _ = arvo_uusi_maa_ja_kentta()
-        tarkista_arvaus(pelaajan_maa, arvottu_maa, username)
-
-    return render_template('game.html', username=username)
-
-
-def tarkista_arvaus(pelaajan_maa, arvottu_maa, username):
-    pelaajan_latitude = 64  # Pelaajan oletuskoordinaatit
-    pelaajan_longitude = 26
-    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
-
-    etaisyys = laske_etaisyys((pelaajan_latitude, pelaajan_longitude), (arvottu_latitude, arvottu_longitude))
-
-    if pelaajan_maa.lower() == arvottu_maa.lower():
-        flash(f"Onnea, arvasit oikean maan! Etäisyys oli {etaisyys:.2f} kilometriä.", "success")
-        lisaa_pisteet(username)
-    else:
-        flash(f"Väärä arvaus, yritä uudelleen. Etäisyys oikeaan vastaukseen oli {etaisyys:.2f} kilometriä.", "danger")
-
-
-def custom_flash(message, category='message'):
-    response = make_response(redirect(request.url))
-    response.set_cookie('flash_message', message)
-    response.set_cookie('flash_category', category)
-    return response
-
-
-
-
-# Näytetään käyttäjän pisteet leaderboardissa
-@app.route('/leaderboard')
-def leaderboard():
-    username = request.cookies.get('username')
-    if not username:
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Hae käyttäjän nykyinen hiscore
-    cursor.execute("SELECT IFNULL(hiscore, 0) as hiscore FROM game WHERE username=%s", (username,))
-    hiscore = cursor.fetchone()
-
-    # Hae tulostaulun tiedot tietokannasta
-    cursor.execute("SELECT username, IFNULL(hiscore, 0) as hiscore FROM game ORDER BY hiscore DESC LIMIT 10")
-    tulostaulu = cursor.fetchall()
-
-    return render_template('leaderboard.html', tulostaulu=tulostaulu, hiscore=hiscore['hiscore'] if hiscore else 0)
-
-
-# Päivitä pisteet tietokantaan pelin lopussa
-def paivita_pisteet(pisteet, username):
     if username:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("UPDATE game SET hiscore = GREATEST(hiscore, %s) WHERE username = %s", (pisteet, username))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        arvottu_maa, arvottu_kentta, arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
+        etaisyys = laske_etaisyys((64, 26), (arvottu_latitude, arvottu_longitude))
+        return render_template('game.html', country=arvottu_maa, airport=arvottu_kentta, distance=etaisyys)
+    else:
+        flash('You need to log in to play the game.', 'info')
+        return redirect(url_for('login'))
+
+@app.route('/highscores')
+def highscores():
+    highscore_list = execute_query("SELECT username, MAX(points) as points FROM scores GROUP BY username ORDER BY points DESC LIMIT 10")
+    return render_template('highscores.html', highscores=highscore_list)
 
 if __name__ == '__main__':
+    app.secret_key = 'supersecretkey'
+    app.config['pisteet'] = 0
     app.run(debug=True)
