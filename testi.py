@@ -143,16 +143,28 @@ def lisaa_pisteet(username):
     # Tallenna pisteet tietokantaan
     execute_query("INSERT INTO scores (username, points) VALUES (%s, %s)", (username, pisteet))
 
-@app.route('/game')
+
+@app.route('/game', methods=['GET', 'POST'])
 def game():
     username = request.cookies.get('username')
-    if username:
-        arvottu_maa, arvottu_kentta, arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
-        etaisyys = laske_etaisyys((64, 26), (arvottu_latitude, arvottu_longitude))
-        return render_template('game.html', country=arvottu_maa, airport=arvottu_kentta, distance=etaisyys)
+    arvottu_maa, arvottu_kentta, arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
+    etaisyys = laske_etaisyys((64, 26), (arvottu_latitude, arvottu_longitude))
+
+    if request.method == 'POST':
+        pelaajan_maa = request.form.get('pelaajan_maa')
+        if pelaajan_maa:
+            if pelaajan_maa.lower() == arvottu_maa.lower():
+                tulos = "Correct!"
+                lisaa_pisteet(username)
+            else:
+                tulos = "Wrong. The correct country is: " + arvottu_maa
+        else:
+            tulos = "Please enter a guess."
     else:
-        flash('You need to log in to play the game.', 'info')
-        return redirect(url_for('login'))
+        tulos = None
+
+    return render_template('game.html', country=arvottu_maa, airport=arvottu_kentta, distance=etaisyys, result=tulos)
+
 
 @app.route('/highscores')
 def highscores():

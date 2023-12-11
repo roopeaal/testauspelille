@@ -3,26 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaderboard</title>
+    <title>Pistetaulukko - Lentokenttäarvausmestari</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            text-decoration: none;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        a:hover {
+            background-color: #555;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .danger {
+            color: red;
+        }
+
+        .info {
+            color: blue;
+        }
+    </style>
 </head>
 <body>
-    <h1>Leaderboard</h1>
-    <p>Your hiscore: {{ hiscore }}</p>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul>
-                {% for message in messages %}
-                    <li style="color: {% if 'success' in message %}green{% else %}red{% endif %};">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-    <ol>
-        {% for entry in tulostaulu %}
-            <li>{{ entry.username }} - {{ entry.hiscore }}</li>
-        {% endfor %}
-    </ol>
-    <a href="/game">Back to Game</a>
-    <a href="/logout">Logout</a>
+    <div class="container">
+        <h1>Pistetaulukko - Lentokenttäarvausmestari</h1>
+        <table>
+            <tr>
+                <th>Sijoitus</th>
+                <th>Käyttäjänimi</th>
+                <th>Pisteet</th>
+            </tr>
+            {% for highscore in highscores %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ highscore.username }}</td>
+                    <td>{{ highscore.points }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <a href="/">Etusivu</a>
+    </div>
 </body>
 </html>
