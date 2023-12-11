@@ -17,7 +17,7 @@ def get_db_connection():
     )
     return conn
 
-# Tietokantayhteyden avaaminen ja sulkeminen tietokantakäsittelyissä
+# Tietokantayhteyden avaaminen ja sulkeminen  tietokantakäsittelyissä
 def execute_query(query, values=None):
     conn = get_db_connection()
     cursor = conn.cursor()
