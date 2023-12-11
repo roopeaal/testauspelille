@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, make_response
 from geopy.distance import geodesic
 import random
 import mysql.connector
 
 app = Flask(__name__)
 
-# Tietokantayhteyden avausfunktio
+#Tietokantayhteyden avausfunktio
 def get_db_connection():
     conn = mysql.connector.connect(
         host='127.0.0.1',
@@ -16,6 +16,7 @@ def get_db_connection():
         autocommit=True
     )
     return conn
+
 
 # Tietokantayhteyden avaaminen ja sulkeminen  tietokantakäsittelyissä
 def execute_query(query, values=None):
@@ -35,7 +36,6 @@ def execute_query(query, values=None):
     finally:
         cursor.close()
         conn.close()
-
 
 @app.route('/')
 def index():
@@ -70,7 +70,6 @@ def register():
 
     return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -84,6 +83,7 @@ def login():
             flash("Invalid username or password", 'danger')
 
     return render_template('login.html')
+
 def check_login(username, password):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -101,49 +101,48 @@ def check_login(username, password):
 @app.route('/logout')
 def logout():
     response = make_response(redirect(url_for('index')))
-    response.set_cookie('username', '', expires=0)
+    response.delete_cookie('username')
     return response
-
 
 
 def arvo_uusi_maa_ja_kentta():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT country.name, MAX(airport.name) AS largest_airport, country.latitude, country.longitude FROM country INNER JOIN airport ON country.iso_country = airport.iso_country WHERE airport.type = 'large_airport' AND country.name LIKE 'Turks%' GROUP BY country.name, country.latitude, country.longitude;")
+    cursor.execute("""
+        SELECT country.name, MAX(airport.name) AS largest_airport, country.latitude, country.longitude 
+        FROM country 
+        INNER JOIN airport ON country.iso_country = airport.iso_country 
+        WHERE airport.type = 'large_airport' 
+        GROUP BY country.name, country.latitude, country.longitude;
+    """)
     tiedot = cursor.fetchall()
     arvottu_tieto = random.choice(tiedot)
-    app.config['arvottu_maa'] = arvottu_tieto[0]
-    app.config['arvottu_kentta'] = arvottu_tieto[1]
     cursor.close()
     conn.close()
-    return arvottu_tieto[2], arvottu_tieto[3]
+    return arvottu_tieto
+
 
 def laske_etaisyys(koordinaatit1, koordinaatit2):
     return geodesic(koordinaatit1, koordinaatit2).kilometers
 
 def lisaa_pisteet(username):
-    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
+    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()  # Purkaa arvo_uusi_maa_ja_kentta-funktion palauttamia koordinaatteja
     pelaajan_latitude = 64  # Pelaajan oletuskoordinaatit
     pelaajan_longitude = 26
     etaisyys = laske_etaisyys((pelaajan_latitude, pelaajan_longitude), (arvottu_latitude, arvottu_longitude))
     pisteet = max(100 - app.config.get('arvaukset', 0) * 10, 0)  # Lisää oletusarvo arvauksille
     app.config['loppupisteet'] += pisteet
-    tallenna_pisteet(pisteet, username)
+    tallenna_pisteet(pisteet, username, arvottu_latitude, arvottu_longitude)  # Välitetään arvot tallenna_pisteet-funktiolle
 
-def tallenna_arvaus():
-    cursor.execute("""
-        INSERT INTO arvaukset (username, arvottu_maa, arvottu_kentta, pelaajan_maa)
-        VALUES (%s, %s, %s, %s)
-    """, (kayttaja, app.config['arvottu_maa'], app.config['arvottu_kentta'], app.config['pelaajan_maa']))
 
-def tallenna_pisteet(pisteet, username):
+def tallenna_pisteet(pisteet, username, arvottu_maa, arvottu_kentta):  # Lisättiin arvottu_maa ja arvottu_kentta parametreiksi
     conn = get_db_connection()
     cursor = conn.cursor()
     if username:
         cursor.execute("""
-            UPDATE game SET hiscore = GREATEST(hiscore, %s)
+            UPDATE game SET hiscore = GREATEST(hiscore, %s), arvottu_maa = %s, arvottu_kentta = %s
             WHERE username = %s
-        """, (pisteet, username))
+        """, (pisteet, arvottu_maa, arvottu_kentta, username))  # Välitetään arvottu_maa ja arvottu_kentta SQL-kyselyyn
         conn.commit()
     cursor.close()
     conn.close()
@@ -171,12 +170,20 @@ def game():
 
     return render_template('game.html', username=username)
 
+
 def tarkista_arvaus(pelaajan_maa, arvottu_maa, username):
+    pelaajan_latitude = 64  # Pelaajan oletuskoordinaatit
+    pelaajan_longitude = 26
+    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
+
+    etaisyys = laske_etaisyys((pelaajan_latitude, pelaajan_longitude), (arvottu_latitude, arvottu_longitude))
+
     if pelaajan_maa.lower() == arvottu_maa.lower():
-        flash("Onnea, arvasit oikean maan!", "success")
+        flash(f"Onnea, arvasit oikean maan! Etäisyys oli {etaisyys:.2f} kilometriä.", "success")
         lisaa_pisteet(username)
     else:
-        flash("Väärä arvaus, yritä uudelleen.", "danger")
+        flash(f"Väärä arvaus, yritä uudelleen. Etäisyys oikeaan vastaukseen oli {etaisyys:.2f} kilometriä.", "danger")
+
 
 def custom_flash(message, category='message'):
     response = make_response(redirect(request.url))
@@ -185,21 +192,6 @@ def custom_flash(message, category='message'):
     return response
 
 
-def arvo_uusi_maa_ja_kentta():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT country.name, MAX(airport.name) AS largest_airport, country.latitude, country.longitude 
-        FROM country 
-        INNER JOIN airport ON country.iso_country = airport.iso_country 
-        WHERE airport.type = 'large_airport' 
-        GROUP BY country.name, country.latitude, country.longitude;
-    """)
-    tiedot = cursor.fetchall()
-    arvottu_tieto = random.choice(tiedot)
-    cursor.close()
-    conn.close()
-    return arvottu_tieto
 
 
 # Näytetään käyttäjän pisteet leaderboardissa
