@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+</head>
+<body>
+    <h1>Leaderboard</h1>
+    <p>Your hiscore: {{ hiscore }}</p>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li style="color: {% if 'success' in message %}green{% else %}red{% endif %};">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+    <ol>
+        {% for entry in tulostaulu %}
+            <li>{{ entry.username }} - {{ entry.hiscore }}</li>
+        {% endfor %}
+    </ol>
+    <a href="/game">Back to Game</a>
+    <a href="/logout">Logout</a>
+</body>
+</html>

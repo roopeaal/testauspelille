@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lentokenttäarvausmestari - Pelaa</title>
+    <!-- Lisää tarvittaessa CSS-tiedostoja tai tyylejä -->
+</head>
+<body>
+    <h1>Lentokenttäarvausmestari - Pelaa</h1>
+
+    <!-- Näytä käyttäjän nykyinen pistetilanne -->
+    <p>Pisteesi: {{ session.get('pisteet', 0) }}</p>
+
+    <!-- Lomake maan ja lentokentän arvaamiseen -->
+    <form action="/game" method="post">
+        <label for="pelaajan_maa">Arvaa maa:</label>
+        <input type="text" id="pelaajan_maa" name="pelaajan_maa" required>
+        <button type="submit">Lähetä arvaus</button>
+    </form>
+
+    <!-- Näytä käyttäjän aiemmat arvaukset, jos niitä on -->
+    {% if session.get('aiemmat_arvaukset') %}
+        <h2>Aiemmat arvauksesi:</h2>
+        <ul>
+            {% for arvaus in session.get('aiemmat_arvaukset') %}
+                <li>{{ arvaus }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <!-- Linkit muihin osioihin, kuten etusivulle tai kirjautumissivulle -->
+    <a href="/">Etusivu</a>
+    <a href="/logout">Kirjaudu ulos</a>
+</body>
+<!-- HTML-näkymässä -->
+{% if request.cookies.get('flash_message') %}
+    <div class="{{ request.cookies.get('flash_category') }}">
+        {{ request.cookies.get('flash_message') }}
+    </div>
+{% endif %}
+
+</html>
