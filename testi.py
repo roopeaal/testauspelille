@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, make_response
 from geopy.distance import geodesic
+import math
 import random
 import mysql.connector
 
@@ -120,50 +121,118 @@ def arvo_uusi_maa_ja_kentta():
     conn.close()
     return arvottu_tieto
 
-# Laske etäisyys
-def laske_etaisyys(koordinaatit1, koordinaatit2):
-    return geodesic(koordinaatit1, koordinaatit2).kilometers
+def laske_etaisyys_ja_ilmansuunta(koordinaatit1, koordinaatit2):
+    # Laske etäisyys ja pyöristä se kokonaisluvuksi
+    etaisyys = round(geodesic(koordinaatit1, koordinaatit2).kilometers)
 
-# Lisää pisteet
-def lisaa_pisteet(username):
-    arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
-    pelaajan_latitude = 64
-    pelaajan_longitude = 26
-    etaisyys = laske_etaisyys((pelaajan_latitude, pelaajan_longitude), (arvottu_latitude, arvottu_longitude))
-    pisteet = max(100 - app.config['pisteet'], 0)
-    if etaisyys <= 500:
-        pisteet += 100
-    elif etaisyys <= 1000:
-        pisteet += 50
-    elif etaisyys <= 1500:
-        pisteet += 20
-    else:
-        pisteet += 10
+    # Laske ilmansuunta
+    lat1, lon1 = map(math.radians, koordinaatit1)
+    lat2, lon2 = map(math.radians, koordinaatit2)
 
-    # Tallenna pisteet tietokantaan
-    execute_query("INSERT INTO scores (username, points) VALUES (%s, %s)", (username, pisteet))
+    dlon = lon2 - lon1
+    y = math.sin(dlon) * math.cos(lat2)
+    x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+    ilmansuunta_rad = math.atan2(y, x)
+    ilmansuunta_deg = math.degrees(ilmansuunta_rad)
+
+    # Muunna asteet ilmansuunnaksi
+    compass_brackets = ["Pohjoinen", "Koillinen", "Itä", "Kaakko", "Etelä", "Lounas", "Länsi", "Luode", "Pohjoinen"]
+    compass_index = int(round(ilmansuunta_deg / 45))
+    ilmansuunta = compass_brackets[compass_index]
+
+    return etaisyys, ilmansuunta
 
 
 @app.route('/game', methods=['GET', 'POST'])
 def game():
     username = request.cookies.get('username')
-    arvottu_maa, arvottu_kentta, arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
-    etaisyys = laske_etaisyys((64, 26), (arvottu_latitude, arvottu_longitude))
+    arvottu_maa = request.cookies.get('arvottu_maa')
+    arvottu_latitude = request.cookies.get('arvottu_latitude')
+    arvottu_longitude = request.cookies.get('arvottu_longitude')
+
+    tulos = None
+    result_category = None
+    etaisyys = None
+    ilmansuunta = None
 
     if request.method == 'POST':
         pelaajan_maa = request.form.get('pelaajan_maa')
         if pelaajan_maa:
-            if pelaajan_maa.lower() == arvottu_maa.lower():
-                tulos = "Correct!"
-                lisaa_pisteet(username)
+            if tarkista_maa_tietokannasta(pelaajan_maa):
+                pelaajan_maa_koord = hae_maan_koordinaatit(pelaajan_maa)
+                etaisyys, ilmansuunta = laske_etaisyys_ja_ilmansuunta(pelaajan_maa_koord, (
+                float(arvottu_latitude), float(arvottu_longitude)))
+                if pelaajan_maa.lower() == arvottu_maa.lower():
+                    tulos = "Correct! The correct country is: " + arvottu_maa
+                    response = make_response(render_template('game.html', result=tulos, country=arvottu_maa))
+                    response.delete_cookie('arvottu_maa')
+                    response.delete_cookie('arvottu_latitude')
+                    response.delete_cookie('arvottu_longitude')
+                    lisaa_pisteet(username)
+                    return response
+                else:
+                    tulos = f"You are {etaisyys} km {ilmansuunta} away from the correct country."
+                    result_category = 'info'
             else:
-                tulos = "Wrong. The correct country is: " + arvottu_maa
+                tulos = "Arvaus on kirjoitettu väärin tai sitä ei ole olemassa"
+                result_category = 'danger'
         else:
             tulos = "Please enter a guess."
-    else:
-        tulos = None
 
-    return render_template('game.html', country=arvottu_maa, airport=arvottu_kentta, distance=etaisyys, result=tulos)
+    return render_template('game.html', result=tulos, result_category=result_category, distance=etaisyys, direction=ilmansuunta)
+
+def lisaa_pisteet(username):
+    # Oletetaan, että arvo_uusi_maa_ja_kentta palauttaa neljä arvoa: maa, kenttä, latitude, longitude
+    _, _, arvottu_latitude, arvottu_longitude = arvo_uusi_maa_ja_kentta()
+    pelaajan_latitude = 64
+    pelaajan_longitude = 26
+    etaisyys = laske_etaisyys((pelaajan_latitude, pelaajan_longitude), (arvottu_latitude, arvottu_longitude))
+
+    # Määritä pisteet etäisyyden perusteella
+    if etaisyys <= 500:
+        pisteet = 100
+    elif etaisyys <= 1000:
+        pisteet = 50
+    elif etaisyys <= 1500:
+        pisteet = 20
+    else:
+        pisteet = 10
+
+    # Tallenna pisteet tietokantaan
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE game SET hiscore = hiscore + %s WHERE username = %s", (pisteet, username))
+        conn.commit()
+    except Exception as e:
+        print("Virhe päivittäessä pistetilannetta:", e)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def laske_etaisyys(koordinaatit1, koordinaatit2):
+    return geodesic(koordinaatit1, koordinaatit2).kilometers
+
+def tarkista_maa_tietokannasta(maa):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name, latitude, longitude FROM country WHERE name = %s", (maa,))
+    tulos = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return bool(tulos)
+
+def hae_maan_koordinaatit(maa):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT latitude, longitude FROM country WHERE name = %s", (maa,))
+        koordinaatit = cursor.fetchone()
+        return koordinaatit
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @app.route('/leaderboard')
