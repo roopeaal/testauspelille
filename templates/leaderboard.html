@@ -6,96 +6,74 @@
     <title>Pistetaulukko - Lentokenttäarvausmestari</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: #fff;
+            width: 80%;
+            max-width: 600px;
+            background: #fff;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-
         h1 {
             text-align: center;
             color: #333;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .footer {
+            text-align: center;
             margin-top: 20px;
         }
-
-        table, th, td {
-            border: 1px solid #ccc;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #333;
-            color: #fff;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-
-        a {
-            display: block;
-            text-align: center;
-            margin-top: 10px;
+        .footer a {
             text-decoration: none;
-            background-color: #333;
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        a:hover {
-            background-color: #555;
-        }
-
-        .success {
-            color: green;
-        }
-
-        .danger {
-            color: red;
-        }
-
-        .info {
-            color: blue;
+            color: #007bff;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Pistetaulukko - Lentokenttäarvausmestari</h1>
+        <h1>Pistetaulukko</h1>
         <table>
             <tr>
                 <th>Sijoitus</th>
                 <th>Käyttäjänimi</th>
                 <th>Pisteet</th>
             </tr>
-            {% for highscore in highscores %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ highscore.username }}</td>
-                    <td>{{ highscore.points }}</td>
-                </tr>
+            {% for user in top_10_scores %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ user[0] }}</td>
+                <td>{{ user[1] }}</td>
+            </tr>
             {% endfor %}
         </table>
-        <a href="/">Etusivu</a>
+        <div class="footer">
+            <a href="/">Takaisin etusivulle</a>
+        </div>
     </div>
 </body>
 </html>

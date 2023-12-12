@@ -168,8 +168,12 @@ def game():
 
 @app.route('/leaderboard')
 def leaderboard():
-    top_10_scores = execute_query(
-        "SELECT username, SUM(points) as total_points FROM scores GROUP BY username ORDER BY total_points DESC LIMIT 10;")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, IFNULL(hiscore, 0) as hiscore FROM game ORDER BY hiscore DESC LIMIT 10;")
+    top_10_scores = cursor.fetchall()
+    cursor.close()
+    conn.close()
     return render_template('leaderboard.html', top_10_scores=top_10_scores)
 
 
