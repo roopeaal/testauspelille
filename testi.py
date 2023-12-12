@@ -153,16 +153,52 @@ def laske_etaisyys_ja_ilmansuunta(koordinaatit1, koordinaatit2):
 
     return etaisyys, ilmansuunta
 
+def lisaa_pisteet(username, points):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE game SET hiscore = %s WHERE username = %s AND %s > hiscore", (points, username, points))
+        conn.commit()
+    except Exception as e:
+        print("Virhe päivittäessä pistetilannetta:", e)
+    finally:
+        cursor.close()
+        conn.close()
+
+def tarkista_maa_tietokannasta(maa):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name, latitude, longitude FROM country WHERE name = %s", (maa,))
+    tulos = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return bool(tulos)
+
+def hae_maan_koordinaatit(maa):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT latitude, longitude FROM country WHERE name = %s", (maa,))
+        koordinaatit = cursor.fetchone()
+        return koordinaatit
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/game', methods=['GET', 'POST'])
 def game():
     username = request.cookies.get('username')
-    points = 1100  # Alku-pisteet pelaajalle
 
     # Tarkistetaan, onko arvottu maa ja koordinaatit jo tallennettu evästeisiin
     arvottu_maa = request.cookies.get('arvottu_maa')
     arvottu_latitude = request.cookies.get('arvottu_latitude')
     arvottu_longitude = request.cookies.get('arvottu_longitude')
+
+    # Pisteiden alustaminen
+    if 'points' not in request.cookies:
+        points = 1100
+    else:
+        points = int(request.cookies.get('points'))
 
     # Jos koordinaatit puuttuvat, arvotaan uudet maat ja koordinaatit
     if arvottu_maa is None or arvottu_latitude is None or arvottu_longitude is None:
@@ -189,19 +225,24 @@ def game():
             if tarkista_maa_tietokannasta(pelaajan_maa):
                 pelaajan_maa_koord = hae_maan_koordinaatit(pelaajan_maa)
                 pelaajan_maa_koord = tuple(map(float, pelaajan_maa_koord))  # Muuta merkkijonoista liukuluvuiksi
-                arvottu_latitude = float(arvottu_latitude)  # Muuta merkkijono liukuluvuksi
-                arvottu_longitude = float(arvottu_longitude)  # Muuta merkkijono liukuluvuksi
+                arvottu_latitude = float(arvottu_latitude)  # Muuta merkkijono liukuluvaksi
+                arvottu_longitude = float(arvottu_longitude)  # Muuta merkkijono liukuluvaksi
                 etaisyys, ilmansuunta = laske_etaisyys_ja_ilmansuunta(pelaajan_maa_koord,
                                                                       (arvottu_latitude, arvottu_longitude))
                 if pelaajan_maa.lower() == arvottu_maa.lower():
-                    tulos = "Arvasit oikein! Oikea maa on: " + arvottu_maa
+                    tulos = (f"Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {points} pistettä!")
                     response = make_response(render_template('game.html', result=tulos, country=arvottu_maa))
                     response.delete_cookie('arvottu_maa')
                     response.delete_cookie('arvottu_latitude')
                     response.delete_cookie('arvottu_longitude')
-                    points -= 100  # Vähennä 100 pistettä oikeasta arvauksesta
-                    lisaa_pisteet(username, points)  # Päivitä pisteet tietokantaan                    return response
+                    lisaa_pisteet(username, points)  # Päivitä pisteet tietokantaan
+                    return response
                 else:
+                    # Vähennä 100 pistettä väärästä arvauksesta
+                    points -= 100
+                    response = make_response(render_template('game.html', result=tulos, result_category=result_category, points=points))
+                    response.set_cookie('points', str(points))
+                    lisaa_pisteet(username, points)  # Vähennä pisteitä väärästä arvauksesta
                     tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Oikea maa on {etaisyys} km päässä {ilmansuunta}.'
                     result_category = 'info'
             else:
@@ -211,43 +252,6 @@ def game():
             tulos = "Syötä arvaus."
 
     return render_template('game.html', result=tulos, result_category=result_category, points=points)
-
-
-def lisaa_pisteet(username, points):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("UPDATE game SET hiscore = %s WHERE username = %s AND %s > hiscore", (points, username, points))
-        conn.commit()
-    except Exception as e:
-        print("Virhe päivittäessä pistetilannetta:", e)
-    finally:
-        cursor.close()
-        conn.close()
-
-
-def laske_etaisyys(koordinaatit1, koordinaatit2):
-    return geodesic(koordinaatit1, koordinaatit2).kilometers
-
-def tarkista_maa_tietokannasta(maa):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name, latitude, longitude FROM country WHERE name = %s", (maa,))
-    tulos = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return bool(tulos)
-
-def hae_maan_koordinaatit(maa):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT latitude, longitude FROM country WHERE name = %s", (maa,))
-        koordinaatit = cursor.fetchone()
-        return koordinaatit
-    finally:
-        cursor.close()
-        conn.close()
 
 @app.route('/leaderboard')
 def leaderboard():
@@ -259,7 +263,6 @@ def leaderboard():
     conn.close()
     return render_template('leaderboard.html', top_10_scores=top_10_scores)
 
-
 @app.route('/highscores')
 def highscores():
     highscore_list = execute_query("SELECT username, IFNULL(hiscore, 0) as hiscore FROM game ORDER BY hiscore DESC LIMIT 10;")
@@ -267,5 +270,4 @@ def highscores():
 
 if __name__ == '__main__':
     app.secret_key = 'supersecretkey'
-    app.config['pisteet'] = 0
     app.run(debug=True)
