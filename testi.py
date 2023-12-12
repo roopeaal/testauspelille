@@ -166,9 +166,16 @@ def game():
     return render_template('game.html', country=arvottu_maa, airport=arvottu_kentta, distance=etaisyys, result=tulos)
 
 
+@app.route('/leaderboard')
+def leaderboard():
+    top_10_scores = execute_query(
+        "SELECT username, SUM(points) as total_points FROM scores GROUP BY username ORDER BY total_points DESC LIMIT 10;")
+    return render_template('leaderboard.html', top_10_scores=top_10_scores)
+
+
 @app.route('/highscores')
 def highscores():
-    highscore_list = execute_query("SELECT username, MAX(points) as points FROM scores GROUP BY username ORDER BY points DESC LIMIT 10")
+    highscore_list = execute_query("SELECT username, IFNULL(hiscore, 0) as hiscore FROM game ORDER BY hiscore DESC LIMIT 10;")
     return render_template('highscores.html', highscores=highscore_list)
 
 if __name__ == '__main__':
