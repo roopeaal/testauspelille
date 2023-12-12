@@ -157,7 +157,7 @@ def laske_etaisyys_ja_ilmansuunta(koordinaatit1, koordinaatit2):
 @app.route('/game', methods=['GET', 'POST'])
 def game():
     username = request.cookies.get('username')
-    points = 1000  # Alku-pisteet pelaajalle
+    points = 1100  # Alku-pisteet pelaajalle
 
     # Tarkistetaan, onko arvottu maa ja koordinaatit jo tallennettu evästeisiin
     arvottu_maa = request.cookies.get('arvottu_maa')
@@ -202,7 +202,7 @@ def game():
                     points -= 100  # Vähennä 100 pistettä oikeasta arvauksesta
                     lisaa_pisteet(username, points)  # Päivitä pisteet tietokantaan                    return response
                 else:
-                    tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Oikea maa on {etaisyys} km päässä {ilmansuunta}'
+                    tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Oikea maa on {etaisyys} km päässä {ilmansuunta}.'
                     result_category = 'info'
             else:
                 tulos = "Maa on kirjoitettu väärin tai sitä ei ole olemassa."
