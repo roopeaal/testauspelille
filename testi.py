@@ -136,7 +136,7 @@ def laske_etaisyys_ja_ilmansuunta(koordinaatit1, koordinaatit2):
     ilmansuunta_deg = math.degrees(ilmansuunta_rad)
 
     # Muunna asteet ilmansuunnaksi
-    compass_brackets = ["Pohjoinen", "Koillinen", "Itä", "Kaakko", "Etelä", "Lounas", "Länsi", "Luode", "Pohjoinen"]
+    compass_brackets = ["Pohjoisessa", "Koillisessa", "Idässä", "Kaakossa", "Etelässä", "Lounaassa", "Lännessä", "Luoteessa", "Pohjoisessa"]
     compass_index = int(round(ilmansuunta_deg / 45))
     ilmansuunta = compass_brackets[compass_index]
 
@@ -171,7 +171,7 @@ def game():
                     lisaa_pisteet(username)
                     return response
                 else:
-                    tulos = f"You are {etaisyys} km {ilmansuunta} away from the correct country."
+                    tulos = f"Oikea maa on {etaisyys} km päässä {ilmansuunta}"
                     result_category = 'info'
             else:
                 tulos = "Arvaus on kirjoitettu väärin tai sitä ei ole olemassa"
