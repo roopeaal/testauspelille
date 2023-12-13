@@ -177,10 +177,24 @@
             // Etsi "Aloita uusi peli" -linkki
             var uusiPeliLinkki = document.getElementById("uusi-peli-linkki");
 
-            // Lisää click-kuuntelija "Aloita uusi peli" -linkille
-            uusiPeliLinkki.addEventListener("click", function () {
-                // Uudelleenohjaa käyttäjä uuden pelin aloitussivulle
-                window.location.href = "/new_game";
+            // Lisää klikkaustapahtumankäsittelijä linkille
+            uusiPeliLinkki.addEventListener("click", function (event) {
+                event.preventDefault(); // Estä linkin oletustoiminto (navigointi)
+
+                // Tee pyyntö uuden maan arpomiseksi
+                fetch('/new_game')  // Korvaa '/new_game' tarvittavalla reitillä palvelimellasi
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Uusi maa arvottiin onnistuneesti, päivitä sivu peliä varten
+                            location.reload();
+                        } else {
+                            console.error('Virhe uuden maan arpomisessa.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Virhe uutta peliä aloittaessa: ' + error);
+                    });
             });
         });
     </script>
