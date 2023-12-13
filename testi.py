@@ -279,8 +279,7 @@ def game():
                     lisaa_pisteet(username, user_points)  # Päivitä pisteet tietokantaan
                     user_points += pisteet  # Päivitä käyttäjän pistemäärä
                     tulos = (
-                        f"Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {user_points} pistettä!")
-                    ('Voit nyt aloittaa uuden pelin "Aloita uusi peli" napista ja koittaa parantaa pisteitäsi!')
+                        f'Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {user_points} pistettä! Aloita uusi peli "Aloita uusi peli" napista.')
                     paivita_hiscore(username, user_points)
                 else:
                     # Vähennä 100 pistettä väärästä arvauksesta
