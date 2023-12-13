@@ -113,6 +113,9 @@
     <!-- Näytä pisteet -->
     <p id="pisteet">Pisteet: {{ points }}</p>
 
+    <!-- Lisää "Aloita uusi peli" -linkki -->
+    <a href="#" id="uusi-peli-linkki">Aloita uusi peli</a>
+
     <!-- Lisää linkit navigointiin -->
     <a href="/leaderboard">Pistetaulukko</a>
     <a href="/logout">Kirjaudu ulos</a>
@@ -137,7 +140,6 @@
                     iconSize: [12, 12],
                     html: '<div class="arrow-up"></div>'
                 });
-
 
                 L.marker([lat1, lon1], { icon: nuolenKuva }).addTo(kartta);
 
@@ -171,6 +173,29 @@
             // Listen for the "Hint" button click
             var vihjeNappi = document.getElementById("vihje-nappi");
             vihjeNappi.addEventListener("click", naytaLentokenttaNimi);
+
+            // Etsi "Aloita uusi peli" -linkki
+            var uusiPeliLinkki = document.getElementById("uusi-peli-linkki");
+
+            // Lisää klikkaustapahtumankäsittelijä linkille
+            uusiPeliLinkki.addEventListener("click", function (event) {
+                event.preventDefault(); // Estä linkin oletustoiminto (navigointi)
+
+                // Tee pyyntö uuden maan arpomiseksi
+                fetch('/new_game')  // Korvaa '/new_game' tarvittavalla reitillä palvelimellasi
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Uusi maa arvottiin onnistuneesti, päivitä sivu peliä varten
+                            location.reload();
+                        } else {
+                            console.error('Virhe uuden maan arpomisessa.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Virhe uutta peliä aloittaessa: ' + error);
+                    });
+            });
         });
     </script>
 </body>
