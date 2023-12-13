@@ -85,7 +85,7 @@ def login():
             response.set_cookie('username', username)
 
             # Lisää tässä vaiheessa pisteiden päivitys
-            lisaa_pisteet(username, 2100)
+            lisaa_pisteet(username, 1000)
 
             return response
         else:
@@ -145,9 +145,26 @@ def arvo_uusi_maa_ja_kentta():
 
 @app.route('/get_largest_airport_name')
 def get_largest_airport_name():
-    arvottu_tieto = arvo_uusi_maa_ja_kentta()
-    largest_airport_name = arvottu_tieto[1]
-    return jsonify({'largest_airport_name': largest_airport_name})
+    arvottu_maa = request.cookies.get('arvottu_maa')
+
+    # Tarkista, että kierroksen_Maa on asetettu evästeisiin
+    if arvottu_maa:
+        # Haetaan suurimman lentokentän nimi kierroksen_Maa:n perusteella
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT MAX(airport.name) AS largest_airport
+            FROM country
+            INNER JOIN airport ON country.iso_country = airport.iso_country
+            WHERE airport.type = 'large_airport' AND country.name = %s
+        """, (arvottu_maa,))
+        largest_airport_name = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+
+        return jsonify({'largest_airport_name': largest_airport_name})
+    else:
+        return jsonify({'largest_airport_name': 'Arvaa ensin maa.'})
 
 
 def laske_etaisyys_ja_ilmansuunta(koordinaatit1, koordinaatit2):
@@ -263,6 +280,7 @@ def game():
                     user_points += pisteet  # Päivitä käyttäjän pistemäärä
                     tulos = (
                         f"Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {user_points} pistettä!")
+                    ('Voit nyt aloittaa uuden pelin "Aloita uusi peli" napista ja koittaa parantaa pisteitäsi!')
                     paivita_hiscore(username, user_points)
                 else:
                     # Vähennä 100 pistettä väärästä arvauksesta
@@ -308,7 +326,7 @@ def start_new_game():
         username = request.cookies.get('username')
 
         # Nollaa käyttäjän pisteet
-        lisaa_pisteet(username, 2100)
+        lisaa_pisteet(username, 1000)
 
         # Arvotaan uusi oikea maa ja tallennetaan se tietokantaan käyttäjänimen perusteella
         arvottu_tieto = arvo_uusi_maa_ja_kentta()
@@ -374,7 +392,7 @@ def new_game():
             arvottu_longitude = arvottu_tieto[3]
 
             # Päivitä uusi maa, koordinaatit ja pistemäärä tietokantaan käyttäjänimen perusteella
-            query = "UPDATE game SET kierroksen_Maa = %s, arvottu_latitude = %s, arvottu_longitude = %s, points = 2100 WHERE username = %s"
+            query = "UPDATE game SET kierroksen_Maa = %s, arvottu_latitude = %s, arvottu_longitude = %s, points = 1000 WHERE username = %s"
             values = (arvottu_maa, arvottu_latitude, arvottu_longitude, username)
             execute_query(query, values)
 
