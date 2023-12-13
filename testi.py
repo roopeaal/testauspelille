@@ -380,8 +380,6 @@ def update_correct_answer():
         return jsonify({'success': False, 'message': 'Uuden oikean maan päivittäminen epäonnistui.'})
 
 
-# ...
-
 @app.route('/new_game', methods=['GET'])
 def new_game():
     try:
@@ -412,9 +410,6 @@ def new_game():
         response = jsonify({'success': False})
 
     return response
-
-# ...
-
 
 
 def paivita_hiscore(username, points):
