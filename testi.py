@@ -380,6 +380,8 @@ def update_correct_answer():
         return jsonify({'success': False, 'message': 'Uuden oikean maan päivittäminen epäonnistui.'})
 
 
+# ...
+
 @app.route('/new_game', methods=['GET'])
 def new_game():
     try:
@@ -395,6 +397,9 @@ def new_game():
             values = (arvottu_maa, arvottu_latitude, arvottu_longitude, username)
             execute_query(query, values)
 
+            # Nollaa käyttäjän pistemäärä
+            lisaa_pisteet(username, 1000)
+
             # Poista evästeistä oikean maan koordinaatit
             response = make_response(jsonify({'success': True, 'arvottu_maa': arvottu_maa}))
             response.delete_cookie('arvottu_latitude')
@@ -407,6 +412,9 @@ def new_game():
         response = jsonify({'success': False})
 
     return response
+
+# ...
+
 
 
 def paivita_hiscore(username, points):
