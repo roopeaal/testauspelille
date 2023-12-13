@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lentokenttäarvausmestari - Pelaa</title>
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,6 +68,18 @@
         a:hover {
             background-color: #555;
         }
+
+        #kartta {
+            height: 400px;
+            margin: 0 auto;
+        }
+
+        #lentokentta-nimi {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -82,14 +96,71 @@
         <p class="{{ 'error' if result_category == 'danger' else '' }}">{{ result }}</p>
     {% endif %}
 
-    <!-- Näytä etäisyys ja ilmansuunta, jos ne on annettu ja arvaus oli väärä mutta maa on olemassa
-    {% if distance is not none and direction is not none and result_category != 'danger' %}
-        <p>Olet {{ distance }} km päässä oikeasta maasta, suunta {{ direction }}.</p>
-    {% endif %}-->
+    <!-- Lisää kartta-div-elementti -->
+    <div id="kartta"></div>
+
+    <!-- Lisää "Vihje" -napin ja suurimman lentokentän nimen näyttävän elementin -->
+    <button id="vihje-nappi">Vihje</button>
+    <p id="lentokentta-nimi"></p>
 
     <!-- Lisää linkit navigointiin -->
     <a href="/leaderboard">Pistetaulukko</a>
     <a href="/logout">Kirjaudu ulos</a>
 
+    <!-- Leaflet.js ja JavaScript-koodi -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Luo kartta
+            var kartta = L.map('kartta').setView([0, 0], 2); // Aseta alkuarvo ja zoom-taso
+
+            // Lisää OpenStreetMap-kartta taustakartaksi
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(kartta);
+
+            // Funktio nuolen piirtämiseen kartalle
+            function piirraNuoli(lat1, lon1, lat2, lon2) {
+                var nuolenKuva = L.divIcon({
+                    className: 'arrow-icon',
+                    iconSize: [12, 12],
+                    html: '<div class="arrow-up"></div>'
+                });
+
+                L.marker([lat1, lon1], { icon: nuolenKuva }).addTo(kartta);
+
+                var polyline = L.polyline([[lat1, lon1], [lat2, lon2]], {
+                    color: 'blue'
+                }).addTo(kartta);
+            }
+
+            // Tarkista, onko etäisyys ja ilmansuunta saatavilla ja piirrä nuoli
+            var etaisyys = {{ etaisyys|default('null') }};
+            var ilmansuunta = "{{ ilmansuunta|default('') }}";
+            if (etaisyys !== null && ilmansuunta !== "") {
+                piirraNuoli(0, 0, etaisyys, ilmansuunta);
+            }
+
+            // Function to display the largest airport name
+            function naytaLentokenttaNimi() {
+                fetch('/get_largest_airport_name')  // Lisää uusi reitti palvelimelle
+                    .then(response => response.json())
+                    .then(data => {
+                        var lentokenttaNimi = data.largest_airport_name;
+                        var lentokenttaNimiElementti = document.getElementById("lentokentta-nimi");
+                        lentokenttaNimiElementti.innerHTML = "Maan suurin lentokenttä on: " + lentokenttaNimi;
+                        lentokenttaNimiElementti.style.display = "block";
+                    })
+                    .catch(error => {
+                        console.error('Virhe haettaessa suurinta lentokenttää: ' + error);
+                    });
+            }
+
+            // Listen for the "Hint" button click
+            var vihjeNappi = document.getElementById("vihje-nappi");
+            vihjeNappi.addEventListener("click", naytaLentokenttaNimi);
+        });
+    </script>
 </body>
 </html>

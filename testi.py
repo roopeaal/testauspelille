@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, make_response, jsonify
 from geopy.distance import geodesic
 import math
 import random
@@ -107,18 +107,30 @@ def logout():
 def arvo_uusi_maa_ja_kentta():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT country.name, MAX(airport.name) AS largest_airport, country.latitude, country.longitude 
-        FROM country 
-        INNER JOIN airport ON country.iso_country = airport.iso_country 
-        WHERE airport.type = 'large_airport' 
-        GROUP BY country.name, country.latitude, country.longitude;
-    """)
-    tiedot = cursor.fetchall()
-    arvottu_tieto = random.choice(tiedot)
-    cursor.close()
-    conn.close()
-    return arvottu_tieto
+    try:
+        # Haetaan satunnainen maa ja sen suurin lentokenttä
+        cursor.execute("""
+            SELECT country.name, MAX(airport.name) AS largest_airport, country.latitude, country.longitude 
+            FROM country 
+            INNER JOIN airport ON country.iso_country = airport.iso_country 
+            WHERE airport.type = 'large_airport' 
+            GROUP BY country.name, country.latitude, country.longitude;
+        """)
+        tiedot = cursor.fetchall()
+        arvottu_tieto = random.choice(tiedot)
+        cursor.close()
+        conn.close()
+        return arvottu_tieto
+    except Exception as e:
+        print("Virhe uutta maata ja kenttää arvottaessa:", e)
+        return None
+
+@app.route('/get_largest_airport_name')
+def get_largest_airport_name():
+    arvottu_tieto = arvo_uusi_maa_ja_kentta()
+    largest_airport_name = arvottu_tieto[1]
+    return jsonify({'largest_airport_name': largest_airport_name})
+
 
 def laske_etaisyys_ja_ilmansuunta(koordinaatit1, koordinaatit2):
     if None in koordinaatit1 or None in koordinaatit2:
