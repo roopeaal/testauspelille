@@ -80,6 +80,13 @@
             margin-top: 10px;
             font-weight: bold;
         }
+
+        #pisteet {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -102,6 +109,9 @@
     <!-- Lisää "Vihje" -napin ja suurimman lentokentän nimen näyttävän elementin -->
     <button id="vihje-nappi">Vihje</button>
     <p id="lentokentta-nimi"></p>
+
+    <!-- Näytä pisteet -->
+    <p id="pisteet">Pisteet: {{ points }}</p>
 
     <!-- Lisää linkit navigointiin -->
     <a href="/leaderboard">Pistetaulukko</a>
@@ -127,6 +137,7 @@
                     iconSize: [12, 12],
                     html: '<div class="arrow-up"></div>'
                 });
+
 
                 L.marker([lat1, lon1], { icon: nuolenKuva }).addTo(kartta);
 

@@ -208,7 +208,7 @@ def game():
 
     # Pisteiden alustaminen
     if 'points' not in request.cookies:
-        points = 1100
+        points = 2100
     else:
         points = int(request.cookies.get('points'))
 
@@ -220,7 +220,7 @@ def game():
         arvottu_longitude = str(arvottu_tieto[3])
 
         # Tallennetaan uudet koordinaatit evästeisiin
-        response = make_response(render_template('game.html'))
+        response = make_response(render_template('game.html', points=points))
         response.set_cookie('arvottu_maa', arvottu_maa)
         response.set_cookie('arvottu_latitude', arvottu_latitude)
         response.set_cookie('arvottu_longitude', arvottu_longitude)
@@ -243,27 +243,26 @@ def game():
                                                                       (arvottu_latitude, arvottu_longitude))
                 if pelaajan_maa.lower() == arvottu_maa.lower():
                     tulos = (f"Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {points} pistettä!")
-                    response = make_response(render_template('game.html', result=tulos, country=arvottu_maa))
-                    response.delete_cookie('arvottu_maa')
-                    response.delete_cookie('arvottu_latitude')
-                    response.delete_cookie('arvottu_longitude')
                     lisaa_pisteet(username, points)  # Päivitä pisteet tietokantaan
-                    return response
                 else:
                     # Vähennä 100 pistettä väärästä arvauksesta
                     points -= 100
-                    response = make_response(render_template('game.html', result=tulos, result_category=result_category, points=points))
-                    response.set_cookie('points', str(points))
-                    lisaa_pisteet(username, points)  # Vähennä pisteitä väärästä arvauksesta
-                    tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Oikea maa on {etaisyys} km päässä {ilmansuunta}.'
                     result_category = 'info'
+                    tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Oikea maa on {etaisyys} km päässä {ilmansuunta}.'
+                # Tallenna pisteet evästeisiin
+                response = make_response(render_template('game.html', result=tulos, result_category=result_category, points=points))
+                response.set_cookie('points', str(points))  # Update points in cookies
+                return response
             else:
                 tulos = "Maa on kirjoitettu väärin tai sitä ei ole olemassa."
                 result_category = 'danger'
         else:
             tulos = "Syötä arvaus."
 
-    return render_template('game.html', result=tulos, result_category=result_category, points=points)
+    # Tallenna pisteet evästeisiin
+    response = make_response(render_template('game.html', result=tulos, result_category=result_category, points=points))
+    response.set_cookie('points', str(points))
+    return response
 
 @app.route('/leaderboard')
 def leaderboard():
