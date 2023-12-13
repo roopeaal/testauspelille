@@ -264,7 +264,6 @@ def game():
                     tulos = (
                         f"Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {user_points} pistettä!")
                     paivita_hiscore(username, user_points)
-
                 else:
                     # Vähennä 100 pistettä väärästä arvauksesta
                     pisteet = -100
@@ -272,6 +271,7 @@ def game():
                     user_points += pisteet  # Päivitä käyttäjän pistemäärä
                     result_category = 'info'
                     tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Oikea maa on {etaisyys} km päässä {ilmansuunta}.'
+
                 # Tallenna pisteet evästeisiin
                 response = make_response(
                     render_template('game.html', result=tulos, result_category=result_category, points=user_points,
@@ -289,6 +289,7 @@ def game():
     return response
 
 
+
 def hae_kayttajan_pisteet(username):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -299,6 +300,41 @@ def hae_kayttajan_pisteet(username):
     finally:
         cursor.close()
         conn.close()
+
+
+@app.route('/start_new_game', methods=['GET'])
+def start_new_game():
+    try:
+        username = request.cookies.get('username')
+
+        # Nollaa käyttäjän pisteet
+        lisaa_pisteet(username, 2100)
+
+        # Arvotaan uusi oikea maa ja tallennetaan se tietokantaan käyttäjänimen perusteella
+        arvottu_tieto = arvo_uusi_maa_ja_kentta()
+        if arvottu_tieto:
+            arvottu_maa = arvottu_tieto[0]
+            arvottu_latitude = arvottu_tieto[2]
+            arvottu_longitude = arvottu_tieto[3]
+
+            # Päivitä uusi maa, koordinaatit ja pistemäärä tietokantaan käyttäjänimen perusteella
+            query = "UPDATE game SET kierroksen_Maa = %s, arvottu_latitude = %s, arvottu_longitude = %s WHERE username = %s"
+            values = (arvottu_maa, arvottu_latitude, arvottu_longitude, username)
+            execute_query(query, values)
+
+            # Poista evästeistä oikean maan koordinaatit
+            response = make_response(jsonify({'success': True, 'arvottu_maa': arvottu_maa}))
+            response.delete_cookie('arvottu_latitude')
+            response.delete_cookie('arvottu_longitude')
+            return response
+        else:
+            response = jsonify({'success': False})
+    except Exception as e:
+        print("Virhe uutta maata arvottaessa:", e)
+        response = jsonify({'success': False})
+
+    return response
+
 
 @app.route('/leaderboard')
 def leaderboard():
