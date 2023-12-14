@@ -17,6 +17,8 @@ app = Flask(__name__)
 
 # UPDATE game SET hiscore = 0;
 
+# Maailman Maantiede Testissä"
+
 
 # Tietokantayhteyden avausfunktio
 def get_db_connection():
