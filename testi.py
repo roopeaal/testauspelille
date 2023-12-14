@@ -6,8 +6,15 @@ import mysql.connector
 
 app = Flask(__name__)
 
+
+# luo seuraavat tarvittavat sql taulut:
+
 # ALTER TABLE game ADD COLUMN points INT DEFAULT 0;
 # ALTER TABLE game ADD COLUMN kierroksen_Maa VARCHAR(255);
+
+
+# nollaa leaderboardi:
+
 # UPDATE game SET hiscore = 0;
 
 
