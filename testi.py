@@ -8,6 +8,7 @@ app = Flask(__name__)
 
 # ALTER TABLE game ADD COLUMN points INT DEFAULT 0;
 # ALTER TABLE game ADD COLUMN kierroksen_Maa VARCHAR(255);
+# UPDATE game SET hiscore = 0;
 
 
 # Tietokantayhteyden avausfunktio
