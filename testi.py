@@ -59,7 +59,7 @@ def register():
             else:
                 cursor.execute("INSERT INTO game (username, password) VALUES (%s, %s)", (username, password))
                 conn.commit()
-                flash('Kirjautuminen onnistui. Voit nyt kirjautua sisään.', 'success')
+                flash('Rekisteröityminen onnistui. Voit nyt kirjautua sisään.', 'success')
                 return redirect(url_for('login'))
 
             cursor.close()
