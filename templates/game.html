@@ -8,10 +8,15 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to top, floralwhite, lightsteelblue) ;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         h1 {
@@ -26,13 +31,17 @@
 
         label {
             font-weight: bold;
+            display: block;
+            color: #495057;
+            margin-bottom: 5px;
         }
 
         input[type="text"] {
-            width: 100%;
+            width: 90%; /* Adjust the width as needed */
+            max-width: 500px; /* Set a maximum width if desired */
             padding: 10px;
-            margin-top: 5px;
-            margin-bottom: 15px;
+            margin: 0 auto; /* Center the input field horizontally */
+            display: block; /* Make the input field a block element */
             border: 1px solid #ccc;
             border-radius: 5px;
         }
@@ -44,6 +53,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-top: 10px;
         }
 
         input[type="submit"]:hover {
@@ -63,6 +73,8 @@
             color: #fff;
             padding: 10px;
             border-radius: 5px;
+            width: 60%; /* Adjust the width as needed */
+            max-width: 300px; /* Set a maximum width if desired */
         }
 
         a:hover {
@@ -71,7 +83,9 @@
 
         #kartta {
             height: 400px;
-            margin: 0 auto;
+            width: 80%; /* Adjust the width as needed */
+            max-width: 900px; /* Set a maximum width if desired */
+            margin: 20px 0; /* Adjust the margin as needed */
         }
 
         #lentokentta-nimi {
@@ -90,7 +104,7 @@
     </style>
 </head>
 <body>
-    <h1>Lentokenttäarvausmestari - Pelaa</h1>
+    <h1>MAAILMAN MAAGINEN MAANARVAUSPELI</h1>
 
     <form action="/game" method="post">
         <label for="pelaajan_maa">Arvaa maa:</label>
@@ -198,7 +212,5 @@
             });
         });
     </script>
-
-    <script src="/celebration.js"></script>
 </body>
 </html>

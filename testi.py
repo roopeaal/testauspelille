@@ -6,20 +6,6 @@ import mysql.connector
 
 app = Flask(__name__)
 
-
-# luo seuraavat tarvittavat sql taulut:
-
-# ALTER TABLE game ADD COLUMN points INT DEFAULT 0;
-# ALTER TABLE game ADD COLUMN kierroksen_Maa VARCHAR(255);
-
-
-# nollaa leaderboardi:
-
-# UPDATE game SET hiscore = 0;
-
-# Maailman Maantiede Testissä"
-
-
 # Tietokantayhteyden avausfunktio
 def get_db_connection():
     conn = mysql.connector.connect(
@@ -69,11 +55,11 @@ def register():
             existing_user = cursor.fetchone()
 
             if existing_user:
-                flash('Username already taken. Please choose another one.', 'danger')
+                flash('Käyttäjänimi on jo käytössä. Valitse toinen.', 'danger')
             else:
                 cursor.execute("INSERT INTO game (username, password) VALUES (%s, %s)", (username, password))
                 conn.commit()
-                flash('Registration successful. You can now log in.', 'success')
+                flash('Kirjautuminen onnistui. Voit nyt kirjautua sisään.', 'success')
                 return redirect(url_for('login'))
 
             cursor.close()
@@ -99,7 +85,7 @@ def login():
 
             return response
         else:
-            flash("Invalid username or password", 'danger')
+            pass
 
     return render_template('login.html')
 
@@ -115,6 +101,7 @@ def check_login(username, password):
     if user_data and user_data['password'] == password:
         return True
     else:
+        flash("Virheellinen käyttäjätunnus tai salasana.", 'danger')
         return False
 
 @app.route('/logout')

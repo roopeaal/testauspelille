@@ -1,0 +1,23 @@
+document.addEventListener('DOMContentLoaded', function () {
+  // Function to create a fireworks animation
+  function createFireworks() {
+    const fireworksContainer = document.createElement('div');
+    fireworksContainer.className = 'fireworks-container';
+
+    for (let i = 0; i < 10; i++) {
+      const firework = document.createElement('div');
+      firework.className = 'firework';
+      fireworksContainer.appendChild(firework);
+    }
+
+    document.body.appendChild(fireworksContainer);
+
+    setTimeout(() => {
+      fireworksContainer.remove();
+    }, 5000); // Remove fireworks after 5 seconds
+  }
+
+  // Listen for a game completion event (when the player completes the game)
+  const gameCompletedButton = document.getElementById('game-completed-button');
+  gameCompletedButton.addEventListener('click', createFireworks);
+});
